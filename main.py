@@ -12,6 +12,10 @@ class RoomInfo(BaseModel):
 
 app = FastAPI()
 
+@app.get("/")
+async def read_root():
+    return {"Hello": "World"}
+
 @app.get("/make-room")
 async def make_room(info: RoomInfo):
     return {
