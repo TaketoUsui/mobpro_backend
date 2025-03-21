@@ -16,17 +16,15 @@ app = FastAPI()
 async def read_root():
     return {"Hello": "World"}
 
-@app.get("/make-room")
+@app.post("/make-room")
 async def make_room(info: RoomInfo):
     return {
-        "status": "ok",
         "room": "qWjlNO"
     }
 
 @app.post("/messages/{room}")
 async def message(room: str, content: Message):
     return {
-        "status": "ok",
         "room": room,
         "user": content.user,
         "message": content.message
@@ -35,7 +33,6 @@ async def message(room: str, content: Message):
 @app.get("/messages/{room}")
 async def get_messages(room: str):
     return {
-        "status": "ok",
         "room": room,
         "messages": [
             {"user": "pigeon", "message": "hello"},
