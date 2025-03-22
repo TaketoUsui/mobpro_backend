@@ -31,6 +31,13 @@ class MakeUser(BaseModel):
 def on_startup():
     db.create_db_and_tables()
 
+@app.get("/init-database")
+def init_database():
+    if db.engine.dialect.has_table(db.engine, "user"):
+        return
+    db.create_db_and_tables()
+    return {"ok": True}
+
 @app.post("/users/make")
 async def make_user(data: MakeUser, session: db.SessionDep):
     new_user = db.User(name=data.name, password=data.password)
