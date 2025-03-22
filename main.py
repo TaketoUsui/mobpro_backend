@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 
-# import my_db as db
+import my_db as db
 
 app = FastAPI()
 app.add_middleware(
@@ -23,6 +23,10 @@ class RoomInfo(BaseModel):
     title: str
     user: str
     atcoderContest: str
+
+@app.on_event("startup")
+def on_startup():
+    db.create_db_and_tables()
 
 @app.get("/")
 async def read_root():
