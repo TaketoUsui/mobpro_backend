@@ -3,12 +3,23 @@ from typing import Annotated
 from fastapi import Depends
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
-
-class Hero(SQLModel, table=True):
+class User(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    name: str = Field(index=True)
-    age: int | None = Field(default=None, index=True)
-    secret_name: str
+    name: str
+    password: str
+
+class Room(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    title: str | None = None
+    user: int | None = Field(default=None, foreign_key="user.id")
+    atcoder_contest: str | None = None
+    youtube_id: str | None = None
+
+class Message(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    user: int | None = Field(default=None, foreign_key="user.id")
+    message: str
+    room: int | None = Field(default=None, foreign_key="room.id")
 
 sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"

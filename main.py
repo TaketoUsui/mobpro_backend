@@ -15,42 +15,70 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class Message(BaseModel):
+class MakeMessage(BaseModel):
     user: str
     message: str
-class RoomInfo(BaseModel):
+class MakeRoom(BaseModel):
     youtubeId: str
     title: str
     user: str
     atcoderContest: str
+class MakeUser(BaseModel):
+    name: str
+    password: str
 
 @app.on_event("startup")
 def on_startup():
     db.create_db_and_tables()
-
-@app.post("/heroes/")
-def create_hero(hero: db.Hero, session: db.SessionDep) -> db.Hero:
-    session.add(hero)
-    session.commit()
-    session.refresh(hero)
-    return hero
 
 @app.get("/")
 async def read_root():
     return {"Hello": "World"}
 
 @app.post("/make-room")
-async def make_room(info: RoomInfo):
+async def make_room(data: MakeRoom):
     return {
         "room": "qWjlNO"
     }
 
+@app.post("/users/make")
+async def make_user(data: MakeUser, session: db.SessionDep):
+    new_user = db.User(name=data.name, password=data.password)
+    session.add(new_user)
+    session.commit()
+    session.refresh(new_user)
+    return {
+        "id": new_user.id,
+        "name": new_user.name
+    }
+
+@app.get("/users/{user_id}")
+async def get_user(user_id: int, session: db.SessionDep):
+    user = session.get(db.User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {
+        "id": user.id,
+        "name": user.name
+    }
+
+@app.get("/users")
+async def get_users(session: db.SessionDep):
+    users = session.exec(db.select(db.User)).all()
+    return [
+        {
+            "id": user.id,
+            "name": user.name
+        }
+        for user in users
+    ]
+
 @app.post("/messages/{room}")
-async def message(room: str, content: Message):
+async def message(room: str, data: MakeMessage):
     return {
         "room": room,
-        "user": content.user,
-        "message": content.message
+        "user": data.user.name,
+        "message": data.message
     }
 
 @app.get("/messages/{room}")
