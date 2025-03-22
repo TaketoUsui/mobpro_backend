@@ -33,9 +33,11 @@ def on_startup():
 
 @app.get("/init-database")
 def init_database():
-    if db.engine.dialect.has_table(db.engine, "user"):
-        return
-    db.create_db_and_tables()
+    try:
+        db.engine.connect()
+        db.engine.execute("SELECT 1")
+    except:
+        db.create_db_and_tables()
     return {"ok": True}
 
 @app.post("/users/make")
