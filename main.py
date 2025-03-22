@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 
-from . import my_db as db
+import my_db as db
 
 app = FastAPI()
 app.add_middleware(
