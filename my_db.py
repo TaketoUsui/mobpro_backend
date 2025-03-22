@@ -17,7 +17,7 @@ class Room(SQLModel, table=True):
 
 class Message(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    user: int | None = Field(default=None, foreign_key="user.id")
+    user: str
     message: str
     room: int | None = Field(default=None, foreign_key="room.id")
 

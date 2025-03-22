@@ -106,22 +106,27 @@ async def get_rooms(session: db.SessionDep):
         for room in rooms
     ]
 
-@app.post("/messages/{room}")
-async def message(room: str, data: MakeMessage):
+@app.post("/messages/make/{room_id}")
+async def make_message(room_id: int, data: MakeMessage, session: db.SessionDep):
+    if not session.get(db.Room, room_id):
+        raise HTTPException(status_code=404, detail="Room not found")
+    new_message = db.Message(user=data.user, message=data.message, room=room_id)
+    session.add(new_message)
+    session.commit()
+    session.refresh(new_message)
     return {
-        "room": room,
-        "user": data.user.name,
-        "message": data.message
+        "id": new_message.id,
+        "user": new_message.user,
+        "message": new_message.message
     }
 
-@app.get("/messages/{room}")
-async def get_messages(room: str):
-    return {
-        "room": room,
-        "messages": [
-            {"user": "pigeon", "message": "hello"},
-            {"user": "giraffe", "message": "nice code"},
-            {"user": "penguin", "message": "hi"},
-            {"user": "shark", "message": "日本人いませんかー？"},
-        ]
-    }
+@app.get("/messages/{room_id}")
+async def get_messages(room_id: int, session: db.SessionDep):
+    messages = session.exec(db.select(db.Message).filter(db.Message.room == room_id)).all()
+    return [
+        {
+            "user": message.user,
+            "message": message.message
+        }
+        for message in messages
+    ]
