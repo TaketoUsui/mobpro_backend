@@ -15,16 +15,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# @app.on_event("startup")
-# def on_startup():
-#     db.create_db_and_tables()
+@app.on_event("startup")
+def on_startup():
+    db.create_db_and_tables()
 
-# @app.post("/heroes/")
-# def create_hero(hero: db.Hero, session: db.SessionDep) -> db.Hero:
-#     session.add(hero)
-#     session.commit()
-#     session.refresh(hero)
-#     return hero
+@app.post("/heroes/")
+def create_hero(hero: db.Hero, session: db.SessionDep) -> db.Hero:
+    session.add(hero)
+    session.commit()
+    session.refresh(hero)
+    return hero
 
 # @app.get("/heroes/")
 # def read_heroes(
@@ -59,8 +59,6 @@ class RoomInfo(BaseModel):
     title: str
     user: str
     atcoderContest: str
-
-app = FastAPI()
 
 @app.get("/")
 async def read_root():
