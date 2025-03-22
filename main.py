@@ -9,7 +9,7 @@ import my_db as db
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=".*",
+    allow_origins=["http://localhost:3000", ],
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
