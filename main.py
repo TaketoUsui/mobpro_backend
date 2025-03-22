@@ -4,14 +4,14 @@ from pydantic import BaseModel
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 
-import my_db as db
+from . import my_db as db
 
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=".*",
+    allow_origin_regex=["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
