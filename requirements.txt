@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+cryptography
+pydantic
+pydantic-extra-types
+pydantic-settings
+email-validator
+python-multipart
