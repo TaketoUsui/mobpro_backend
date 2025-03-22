@@ -19,10 +19,10 @@ class MakeMessage(BaseModel):
     user: str
     message: str
 class MakeRoom(BaseModel):
-    youtubeId: str
     title: str
-    user: str
+    user: int
     atcoderContest: str
+    youtubeId: str
 class MakeUser(BaseModel):
     name: str
     password: str
@@ -30,16 +30,6 @@ class MakeUser(BaseModel):
 @app.on_event("startup")
 def on_startup():
     db.create_db_and_tables()
-
-@app.get("/")
-async def read_root():
-    return {"Hello": "World"}
-
-@app.post("/make-room")
-async def make_room(data: MakeRoom):
-    return {
-        "room": "qWjlNO"
-    }
 
 @app.post("/users/make")
 async def make_user(data: MakeUser, session: db.SessionDep):
@@ -71,6 +61,49 @@ async def get_users(session: db.SessionDep):
             "name": user.name
         }
         for user in users
+    ]
+
+@app.post("/rooms/make")
+async def make_room(data: MakeRoom, session: db.SessionDep):
+    if not session.get(db.User, data.user):
+        raise HTTPException(status_code=404, detail="User not found")
+    new_room = db.Room(
+        title=data.title,
+        user=data.user,
+        atcoder_contest=data.atcoderContest,
+        youtube_id=data.youtubeId
+    )
+    session.add(new_room)
+    session.commit()
+    session.refresh(new_room)
+    return {
+        "id": new_room.id,
+        "title": new_room.title
+    }
+
+@app.get("/rooms/{room_id}")
+async def get_room(room_id: int, session: db.SessionDep):
+    room = session.get(db.Room, room_id)
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    return {
+        "id": room.id,
+        "title": room.title,
+        "user": session.get(db.User, room.user).name,
+        "atcoderContest": room.atcoder_contest,
+        "youtubeId": room.youtube_id
+    }
+
+@app.get("/rooms")
+async def get_rooms(session: db.SessionDep):
+    rooms = session.exec(db.select(db.Room)).all()
+    return [
+        {
+            "id": room.id,
+            "title": room.title,
+            "user": session.get(db.User, room.user).name
+        }
+        for room in rooms
     ]
 
 @app.post("/messages/{room}")
