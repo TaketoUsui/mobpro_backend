@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, HTTPException, Query
 
 import my_db as db
 
@@ -24,9 +24,16 @@ class RoomInfo(BaseModel):
     user: str
     atcoderContest: str
 
-# @app.on_event("startup")
-# def on_startup():
-#     db.create_db_and_tables()
+@app.on_event("startup")
+def on_startup():
+    db.create_db_and_tables()
+
+@app.post("/heroes/")
+def create_hero(hero: db.Hero, session: db.SessionDep) -> db.Hero:
+    session.add(hero)
+    session.commit()
+    session.refresh(hero)
+    return hero
 
 @app.get("/")
 async def read_root():
