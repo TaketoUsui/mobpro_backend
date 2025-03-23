@@ -26,6 +26,9 @@ class MakeRoom(BaseModel):
 class MakeUser(BaseModel):
     name: str
     password: str
+class LoginUser(BaseModel):
+    name: str
+    password: str
 
 @app.on_event("startup")
 def on_startup():
@@ -56,6 +59,18 @@ async def get_user(user_id: int, session: db.SessionDep):
     user = session.get(db.User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    return {
+        "id": user.id,
+        "name": user.name
+    }
+
+@app.post("/users/login")
+async def login_user(data: LoginUser, session: db.SessionDep):
+    user = session.exec(db.select(db.User).filter(db.User.name == data.name)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.password != data.password:
+        raise HTTPException(status_code=401, detail="Invalid password")
     return {
         "id": user.id,
         "name": user.name
