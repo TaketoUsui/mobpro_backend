@@ -45,6 +45,9 @@ def init_database():
 
 @app.post("/users/make")
 async def make_user(data: MakeUser, session: db.SessionDep):
+    user = session.exec(db.select(db.User).filter(db.User.name == data.name)).first()
+    if user:
+        raise HTTPException(status_code=400, detail="User already exists")
     new_user = db.User(name=data.name, password=data.password)
     session.add(new_user)
     session.commit()
