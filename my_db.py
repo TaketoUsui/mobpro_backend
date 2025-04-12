@@ -27,6 +27,15 @@ class Like(SQLModel, table=True):
     user_id: int | None = Field(default=None, foreign_key="user.id")
     message_id: int | None = Field(default=None, foreign_key="message.id")
     
+class Achievement(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int | None = Field(default=None, foreign_key="user.id")
+    login_days: int = 0
+    likes_given: int = 0
+    likes_received: int = 0
+    comments_made: int = 0
+    rooms_created: int = 0
+    streams_viewed: int = 0
 
 sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
