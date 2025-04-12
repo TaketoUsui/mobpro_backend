@@ -172,13 +172,36 @@ async def like_message(message_id: int, user_id: int, session: db.SessionDep):
     message = session.get(db.Message, message_id)
     if not message:
         raise HTTPException(status_code=404, detail="Message not found")
-    if not session.get(db.User, user_id):
+    
+    liker = session.get(db.User, user_id)
+    if not liker:
         raise HTTPException(status_code=404, detail="User not found")
-    if session.exec(db.select(db.Like).filter(db.Like.message_id == message_id, db.Like.user_id == user_id)).first():
+    
+    # すでにいいねしているか確認
+    existing_like = session.exec(db.select(db.Like).filter(db.Like.message_id == message_id, db.Like.user_id == user_id)).first()
+    if existing_like:
         raise HTTPException(status_code=400, detail="Already liked")
+    
+    # いいね作成
     new_like = db.Like(user_id=user_id, message_id=message_id)
     message.liked += 1
     session.add(new_like)
+    
+    # いいねしたユーザーの実績（likes_given）を更新
+    liker_achievement = session.exec(
+        db.select(db.Achievement).where(db.Achievement.user_id == user_id)
+    ).first()
+    if liker_achievement:
+        liker_achievement.likes_given += 1
+        
+    # メッセージの投稿者の実績（likes_received）を更新
+    receiver_achievement = session.exec(
+        db.select(db.Achievement).where(db.Achievement.user_id == message.user)
+    ).first()
+    if receiver_achievement:
+        receiver_achievement.likes_received += 1
+    
+    # DBの更新
     session.commit()
     session.refresh(message)
     session.refresh(new_like)
