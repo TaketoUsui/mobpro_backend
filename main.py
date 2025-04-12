@@ -215,11 +215,30 @@ async def unlike_message(message_id: int, user_id: int, session: db.SessionDep):
     message = session.get(db.Message, message_id)
     if not message:
         raise HTTPException(status_code=404, detail="Message not found")
+    
     like = session.exec(db.select(db.Like).filter(db.Like.message_id == message_id, db.Like.user_id == user_id)).first()
     if not like:
         raise HTTPException(status_code=404, detail="Like not found")
+    
+    # いいねの削除
     session.delete(like)
     message.liked -= 1
+    
+    # いいねしたユーザーの実績（likes_given）を更新
+    liker_achievement = session.exec(
+        db.select(db.Achievement).where(db.Achievement.user_id == user_id)
+    ).first()
+    if liker_achievement:
+        liker_achievement.likes_given -= 1
+        
+    # メッセージの投稿者の実績（likes_received）を更新
+    receiver_achievement = session.exec(
+        db.select(db.Achievement).where(db.Achievement.user_id == message.user)
+    ).first()
+    if receiver_achievement:
+        receiver_achievement.likes_received -= 1
+    
+    # DBの更新
     session.commit()
     session.refresh(message)
     return HTTPException(status_code=200, detail="Unliked successfully")
