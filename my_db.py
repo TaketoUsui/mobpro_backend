@@ -20,6 +20,12 @@ class Message(SQLModel, table=True):
     user: str
     message: str
     room: int | None = Field(default=None, foreign_key="room.id")
+    
+class Like(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int | None = Field(default=None, foreign_key="user.id")
+    message_id: int | None = Field(default=None, foreign_key="message.id")
+    
 
 sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
