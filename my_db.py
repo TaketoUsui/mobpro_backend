@@ -30,7 +30,7 @@ class Like(SQLModel, table=True):
 class Achievement(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     user_id: int | None = Field(default=None, foreign_key="user.id")
-    login_days: int = 0
+    login_days: int = 1 #登録した時点でログイン1日目になるため
     likes_given: int = 0
     likes_received: int = 0
     comments_made: int = 0
