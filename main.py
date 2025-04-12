@@ -163,29 +163,34 @@ async def get_messages(room_id: int, user_id: int, session: db.SessionDep):
 
 @app.post("/messages/like/{message_id}")
 async def like_message(message_id: int, user_id: int, session: db.SessionDep):
-    if not session.get(db.Message, message_id):
+    message = session.get(db.Message, message_id)
+    if not message:
         raise HTTPException(status_code=404, detail="Message not found")
     if not session.get(db.User, user_id):
         raise HTTPException(status_code=404, detail="User not found")
     if session.exec(db.select(db.Like).filter(db.Like.message_id == message_id, db.Like.user_id == user_id)).first():
         raise HTTPException(status_code=400, detail="Already liked")
     new_like = db.Like(user_id=user_id, message_id=message_id)
-    session.exec(db.update(db.Message).where(db.Message.id == message_id).values(liked=db.Message.liked + 1))
+    message.liked += 1
     session.add(new_like)
     session.commit()
+    session.refresh(message)
     session.refresh(new_like)
     return {
-        # "id": new_like.id,
         "user_id": new_like.user_id,
         "message_id": new_like.message_id
     }
 
-@app.get("/messages/unlike/{message_id}")
+@app.post("/messages/unlike/{message_id}")
 async def unlike_message(message_id: int, user_id: int, session: db.SessionDep):
+    message = session.get(db.Message, message_id)
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found")
     like = session.exec(db.select(db.Like).filter(db.Like.message_id == message_id, db.Like.user_id == user_id)).first()
     if not like:
         raise HTTPException(status_code=404, detail="Like not found")
     session.delete(like)
-    session.exec(db.update(db.Message).where(db.Message.id == message_id).values(liked=db.Message.liked - 1))
+    message.liked -= 1
     session.commit()
-    return {"ok": True}
+    session.refresh(message)
+    return HTTPException(status_code=200, detail="Unliked successfully")
