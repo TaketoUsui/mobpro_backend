@@ -52,6 +52,12 @@ async def make_user(data: MakeUser, session: db.SessionDep):
     session.add(new_user)
     session.commit()
     session.refresh(new_user)
+    
+    #　実績テーブルの初期化
+    new_achievement = db.Achievement(user_id=new_user.id)
+    session.add(new_achievement)
+    session.commit()
+    
     return {
         "id": new_user.id,
         "name": new_user.name
