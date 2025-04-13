@@ -106,7 +106,10 @@ async def login_user(data: LoginUser, session: db.SessionDep):
         if login_achievement.last_login_date != today:
             login_achievement.login_days += 1
             login_achievement.last_login_date = today
-    
+            
+    session.add(login_achievement)
+    session.commit()
+    session.refresh(login_achievement)
     return {
         "id": user.id,
         "name": user.name
@@ -142,9 +145,11 @@ async def make_room(data: MakeRoom, session: db.SessionDep):
     ).first()
     if make_room_achievement:
         make_room_achievement.rooms_created += 1
-    
+        
+    session.add(make_room_achievement)
     session.commit()
     session.refresh(new_room)
+    session.refresh(make_room_achievement)
     return {
         "id": new_room.id,
         "title": new_room.title
