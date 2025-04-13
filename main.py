@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from fastapi import Depends, HTTPException, Query
+from datetime import date
 
 import my_db as db
 
@@ -93,6 +94,19 @@ async def login_user(data: LoginUser, session: db.SessionDep):
         raise HTTPException(status_code=404, detail="User not found")
     if user.password != data.password:
         raise HTTPException(status_code=401, detail="Invalid password")
+    
+    # ログインユーザーの実績（login_days）の更新
+    login_achievement = None
+    login_achievement = session.exec(
+        db.select(db.Achievement).where(db.Achievement.user_id == user.id)
+    ).first()
+    today = date.today()
+    if login_achievement:
+        # その日初めてのログインであればlogin_daysを増やす
+        if login_achievement.last_login_date != today:
+            login_achievement.login_days += 1
+            login_achievement.last_login_date = today
+    
     return {
         "id": user.id,
         "name": user.name
