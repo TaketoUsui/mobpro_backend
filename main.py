@@ -78,7 +78,7 @@ async def get_user(user_id: int, session: db.SessionDep):
             # "login_days": archievement.login_days,
             "likes_given": archievement.likes_given,
             "likes_received": archievement.likes_received,
-            # "comments_made": archievement.comments_made,
+            "messages_made": archievement.messages_made,
             # "rooms_created": archievement.rooms_created,
             # "streams_viewed": archievement.streams_viewed,
         }
@@ -158,6 +158,17 @@ async def make_message(room_id: int, data: MakeMessage, session: db.SessionDep):
         raise HTTPException(status_code=404, detail="Room not found")
     new_message = db.Message(user=data.user, message=data.message, room=room_id)
     session.add(new_message)
+    
+    # メッセージ投稿者の実績（messages_made）を更新
+    make_message_user = session.exec(db.select(db.User).where(db.User.name == data.user)).first()
+    make_message_achievement = None
+    if make_message_user:
+        make_message_achievement = session.exec(
+            db.select(db.Achievement).where(db.Achievement.user_id == make_message_user.id)
+        ).first()
+    if make_message_achievement:
+        make_message_achievement.messages_made += 1
+
     session.commit()
     session.refresh(new_message)
     return {

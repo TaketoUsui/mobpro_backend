@@ -33,7 +33,7 @@ class Achievement(SQLModel, table=True):
     login_days: int = 1 #登録した時点でログイン1日目になるため
     likes_given: int = 0
     likes_received: int = 0
-    comments_made: int = 0
+    messages_made: int = 0
     rooms_created: int = 0
     streams_viewed: int = 0
 
