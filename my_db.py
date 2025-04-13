@@ -36,7 +36,8 @@ class Achievement(SQLModel, table=True):
     messages_made: int = 0
     rooms_created: int = 0
     streams_viewed: int = 0
-
+    last_login_date: str | None = None # その日初めてのログインかどうかを判定するため
+    
 sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 
