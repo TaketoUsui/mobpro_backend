@@ -195,9 +195,14 @@ async def like_message(message_id: int, user_id: int, session: db.SessionDep):
         liker_achievement.likes_given += 1
         
     # メッセージの投稿者の実績（likes_received）を更新
-    receiver_achievement = session.exec(
-        db.select(db.Achievement).where(db.Achievement.user_id == message.user)
-    ).first()
+    # ユーザー名から User を検索
+    receiver_user = session.exec(db.select(db.User).where(db.User.name == message.user)).first()
+    # ユーザーが存在する場合のみ Achievement を取得しいいね数を増やす
+    receiver_achievement = None
+    if receiver_user:
+        receiver_achievement = session.exec(
+            db.select(db.Achievement).where(db.Achievement.user_id == receiver_user.id)
+        ).first()
     if receiver_achievement:
         receiver_achievement.likes_received += 1
     
@@ -232,9 +237,14 @@ async def unlike_message(message_id: int, user_id: int, session: db.SessionDep):
         liker_achievement.likes_given -= 1
         
     # メッセージの投稿者の実績（likes_received）を更新
-    receiver_achievement = session.exec(
-        db.select(db.Achievement).where(db.Achievement.user_id == message.user)
-    ).first()
+    # ユーザー名から User を検索
+    receiver_user = session.exec(db.select(db.User).where(db.User.name == message.user)).first()
+    # ユーザーが存在する場合のみ Achievement を取得しいいね数を減らす
+    receiver_achievement = None
+    if receiver_user:
+        receiver_achievement = session.exec(
+            db.select(db.Achievement).where(db.Achievement.user_id == receiver_user.id)
+        ).first()
     if receiver_achievement:
         receiver_achievement.likes_received -= 1
     
