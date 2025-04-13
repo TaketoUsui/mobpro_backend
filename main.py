@@ -79,7 +79,7 @@ async def get_user(user_id: int, session: db.SessionDep):
             "likes_given": archievement.likes_given,
             "likes_received": archievement.likes_received,
             "messages_made": archievement.messages_made,
-            # "rooms_created": archievement.rooms_created,
+            "rooms_created": archievement.rooms_created,
             # "streams_viewed": archievement.streams_viewed,
         }
     else:
@@ -120,6 +120,15 @@ async def make_room(data: MakeRoom, session: db.SessionDep):
         youtube_id=data.youtubeId
     )
     session.add(new_room)
+    
+    # ルーム作成者の実績（rooms_created）を更新
+    make_room_achievement = None
+    make_room_achievement = session.exec(
+        db.select(db.Achievement).where(db.Achievement.user_id == data.user)
+    ).first()
+    if make_room_achievement:
+        make_room_achievement.rooms_created += 1
+    
     session.commit()
     session.refresh(new_room)
     return {
