@@ -78,7 +78,7 @@ async def get_user(user_id: int, session: db.SessionDep):
             # "login_days": archievement.login_days,
             "likes_given": archievement.likes_given,
             "likes_received": archievement.likes_received,
-            # "comments_made": archievement.comments_made,
+            "messages_made": archievement.messages_made,
             # "rooms_created": archievement.rooms_created,
             # "streams_viewed": archievement.streams_viewed,
         }
