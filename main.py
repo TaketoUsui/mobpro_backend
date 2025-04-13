@@ -52,6 +52,12 @@ async def make_user(data: MakeUser, session: db.SessionDep):
     session.add(new_user)
     session.commit()
     session.refresh(new_user)
+    
+    #　実績テーブルの初期化
+    new_achievement = db.Achievement(user_id=new_user.id)
+    session.add(new_achievement)
+    session.commit()
+    
     return {
         "id": new_user.id,
         "name": new_user.name
@@ -62,10 +68,23 @@ async def get_user(user_id: int, session: db.SessionDep):
     user = session.get(db.User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return {
+    archievement = session.exec(db.select(db.Achievement).filter(db.Achievement.user_id == user_id)).first()
+    output = {
         "id": user.id,
-        "name": user.name
+        "name": user.name,
     }
+    if archievement:
+        output["archievements"] = {
+            # "login_days": archievement.login_days,
+            "likes_given": archievement.likes_given,
+            "likes_received": archievement.likes_received,
+            # "comments_made": archievement.comments_made,
+            # "rooms_created": archievement.rooms_created,
+            # "streams_viewed": archievement.streams_viewed,
+        }
+    else:
+        output["archievements"] = {}
+    return output
 
 @app.post("/users/login")
 async def login_user(data: LoginUser, session: db.SessionDep):
@@ -166,13 +185,41 @@ async def like_message(message_id: int, user_id: int, session: db.SessionDep):
     message = session.get(db.Message, message_id)
     if not message:
         raise HTTPException(status_code=404, detail="Message not found")
-    if not session.get(db.User, user_id):
+    
+    liker = session.get(db.User, user_id)
+    if not liker:
         raise HTTPException(status_code=404, detail="User not found")
-    if session.exec(db.select(db.Like).filter(db.Like.message_id == message_id, db.Like.user_id == user_id)).first():
+    
+    # すでにいいねしているか確認
+    existing_like = session.exec(db.select(db.Like).filter(db.Like.message_id == message_id, db.Like.user_id == user_id)).first()
+    if existing_like:
         raise HTTPException(status_code=400, detail="Already liked")
+    
+    # いいね作成
     new_like = db.Like(user_id=user_id, message_id=message_id)
     message.liked += 1
     session.add(new_like)
+    
+    # いいねしたユーザーの実績（likes_given）を更新
+    liker_achievement = session.exec(
+        db.select(db.Achievement).where(db.Achievement.user_id == user_id)
+    ).first()
+    if liker_achievement:
+        liker_achievement.likes_given += 1
+        
+    # メッセージの投稿者の実績（likes_received）を更新
+    # ユーザー名から User を検索
+    receiver_user = session.exec(db.select(db.User).where(db.User.name == message.user)).first()
+    # ユーザーが存在する場合のみ Achievement を取得しいいね数を増やす
+    receiver_achievement = None
+    if receiver_user:
+        receiver_achievement = session.exec(
+            db.select(db.Achievement).where(db.Achievement.user_id == receiver_user.id)
+        ).first()
+    if receiver_achievement:
+        receiver_achievement.likes_received += 1
+    
+    # DBの更新
     session.commit()
     session.refresh(message)
     session.refresh(new_like)
@@ -186,11 +233,35 @@ async def unlike_message(message_id: int, user_id: int, session: db.SessionDep):
     message = session.get(db.Message, message_id)
     if not message:
         raise HTTPException(status_code=404, detail="Message not found")
+    
     like = session.exec(db.select(db.Like).filter(db.Like.message_id == message_id, db.Like.user_id == user_id)).first()
     if not like:
         raise HTTPException(status_code=404, detail="Like not found")
+    
+    # いいねの削除
     session.delete(like)
     message.liked -= 1
+    
+    # いいねしたユーザーの実績（likes_given）を更新
+    liker_achievement = session.exec(
+        db.select(db.Achievement).where(db.Achievement.user_id == user_id)
+    ).first()
+    if liker_achievement:
+        liker_achievement.likes_given -= 1
+        
+    # メッセージの投稿者の実績（likes_received）を更新
+    # ユーザー名から User を検索
+    receiver_user = session.exec(db.select(db.User).where(db.User.name == message.user)).first()
+    # ユーザーが存在する場合のみ Achievement を取得しいいね数を減らす
+    receiver_achievement = None
+    if receiver_user:
+        receiver_achievement = session.exec(
+            db.select(db.Achievement).where(db.Achievement.user_id == receiver_user.id)
+        ).first()
+    if receiver_achievement:
+        receiver_achievement.likes_received -= 1
+    
+    # DBの更新
     session.commit()
     session.refresh(message)
     return HTTPException(status_code=200, detail="Unliked successfully")
