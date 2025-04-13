@@ -76,7 +76,7 @@ async def get_user(user_id: int, session: db.SessionDep):
     }
     if archievement:
         output["archievements"] = {
-            # "login_days": archievement.login_days,
+            "login_days": archievement.login_days,
             "likes_given": archievement.likes_given,
             "likes_received": archievement.likes_received,
             "messages_made": archievement.messages_made,
