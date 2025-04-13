@@ -68,10 +68,23 @@ async def get_user(user_id: int, session: db.SessionDep):
     user = session.get(db.User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return {
+    archievement = session.exec(db.select(db.Achievement).filter(db.Achievement.user_id == user_id)).first()
+    output = {
         "id": user.id,
-        "name": user.name
+        "name": user.name,
     }
+    if archievement:
+        output["archievements"] = {
+            # "login_days": archievement.login_days,
+            "likes_given": archievement.likes_given,
+            "likes_received": archievement.likes_received,
+            # "comments_made": archievement.comments_made,
+            # "rooms_created": archievement.rooms_created,
+            # "streams_viewed": archievement.streams_viewed,
+        }
+    else:
+        output["archievements"] = {}
+    return output
 
 @app.post("/users/login")
 async def login_user(data: LoginUser, session: db.SessionDep):
