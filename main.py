@@ -148,6 +148,7 @@ async def make_message(room_id: int, data: MakeMessage, session: db.SessionDep):
     
     # メッセージ投稿者の実績（messages_made）を更新
     make_message_user = session.exec(db.select(db.User).where(db.User.name == data.user)).first()
+    make_message_achievement = None
     if make_message_user:
         make_message_achievement = session.exec(
             db.select(db.Achievement).where(db.Achievement.user_id == make_message_user.id)
