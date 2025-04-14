@@ -30,13 +30,14 @@ class Like(SQLModel, table=True):
 class Achievement(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     user_id: int | None = Field(default=None, foreign_key="user.id")
-    login_days: int = 1 #登録した時点でログイン1日目になるため
+    login_days: int = 0
     likes_given: int = 0
     likes_received: int = 0
     messages_made: int = 0
     rooms_created: int = 0
     streams_viewed: int = 0
-
+    last_login_date: str | None = None # その日初めてのログインかどうかを判定するため
+    
 sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 

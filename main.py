@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from fastapi import Depends, HTTPException, Query
+from datetime import date
 
 import my_db as db
 
@@ -75,11 +76,11 @@ async def get_user(user_id: int, session: db.SessionDep):
     }
     if archievement:
         output["archievements"] = {
-            # "login_days": archievement.login_days,
+            "login_days": archievement.login_days,
             "likes_given": archievement.likes_given,
             "likes_received": archievement.likes_received,
             "messages_made": archievement.messages_made,
-            # "rooms_created": archievement.rooms_created,
+            "rooms_created": archievement.rooms_created,
             # "streams_viewed": archievement.streams_viewed,
         }
     else:
@@ -93,6 +94,22 @@ async def login_user(data: LoginUser, session: db.SessionDep):
         raise HTTPException(status_code=404, detail="User not found")
     if user.password != data.password:
         raise HTTPException(status_code=401, detail="Invalid password")
+    
+    # ログインユーザーの実績（login_days）の更新
+    login_achievement = None
+    login_achievement = session.exec(
+        db.select(db.Achievement).where(db.Achievement.user_id == user.id)
+    ).first()
+    today = date.today()
+    if login_achievement:
+        # その日初めてのログインであればlogin_daysを増やす
+        if login_achievement.last_login_date != today:
+            login_achievement.login_days += 1
+            login_achievement.last_login_date = today
+            
+    session.add(login_achievement)
+    session.commit()
+    session.refresh(login_achievement)
     return {
         "id": user.id,
         "name": user.name
@@ -120,8 +137,19 @@ async def make_room(data: MakeRoom, session: db.SessionDep):
         youtube_id=data.youtubeId
     )
     session.add(new_room)
+    
+    # ルーム作成者の実績（rooms_created）を更新
+    make_room_achievement = None
+    make_room_achievement = session.exec(
+        db.select(db.Achievement).where(db.Achievement.user_id == data.user)
+    ).first()
+    if make_room_achievement:
+        make_room_achievement.rooms_created += 1
+        
+    session.add(make_room_achievement)
     session.commit()
     session.refresh(new_room)
+    session.refresh(make_room_achievement)
     return {
         "id": new_room.id,
         "title": new_room.title
