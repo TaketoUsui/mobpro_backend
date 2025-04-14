@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from fastapi import Depends, HTTPException, Query
-from datetime import date
+from datetime import datetime, timezone
 
 import my_db as db
 
@@ -51,13 +51,14 @@ async def make_user(data: MakeUser, session: db.SessionDep):
         raise HTTPException(status_code=400, detail="User already exists")
     new_user = db.User(name=data.name, password=data.password)
     session.add(new_user)
+    session.commit()
+    session.refresh(new_user)
     
     #　実績テーブルの初期化
     new_achievement = db.Achievement(user_id=new_user.id)
     session.add(new_achievement)
 
     session.commit()
-    session.refresh(new_user)
     session.refresh(new_achievement)
     
     return {
@@ -101,19 +102,22 @@ async def login_user(data: LoginUser, session: db.SessionDep):
     login_achievement = session.exec(
         db.select(db.Achievement).where(db.Achievement.user_id == user.id)
     ).first()
-    today = date.today()
+    last_login_date = login_achievement.last_login_date if login_achievement and login_achievement.last_login_date else "no data"
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if login_achievement:
         # その日初めてのログインであればlogin_daysを増やす
-        if login_achievement.last_login_date != today:
+        if last_login_date != today:
             login_achievement.login_days += 1
             login_achievement.last_login_date = today
+            session.add(login_achievement)
             
-    session.add(login_achievement)
     session.commit()
-    session.refresh(login_achievement)
+    if login_achievement:
+        session.refresh(login_achievement)
     return {
         "id": user.id,
-        "name": user.name
+        "name": user.name,
+        "last_login_date": last_login_date,
     }
 
 @app.get("/users")
@@ -146,12 +150,12 @@ async def make_room(data: MakeRoom, session: db.SessionDep):
     ).first()
     if make_room_achievement:
         make_room_achievement.rooms_created += 1
-        
-    session.add(make_room_achievement)
+        session.add(make_room_achievement)
     
     session.commit()
     session.refresh(new_room)
-    session.refresh(make_room_achievement)
+    if make_room_achievement:
+        session.refresh(make_room_achievement)
     return {
         "id": new_room.id,
         "title": new_room.title
@@ -198,11 +202,12 @@ async def make_message(room_id: int, data: MakeMessage, session: db.SessionDep):
         ).first()
     if make_message_achievement:
         make_message_achievement.messages_made += 1
-    session.add(make_message_achievement)
+        session.add(make_message_achievement)
 
     session.commit()
     session.refresh(new_message)
-    session.refresh(make_message_achievement)
+    if make_message_achievement:
+        session.refresh(make_message_achievement)
     return {
         "id": new_message.id,
         "user": new_message.user,
@@ -250,7 +255,7 @@ async def like_message(message_id: int, user_id: int, session: db.SessionDep):
     ).first()
     if liker_achievement:
         liker_achievement.likes_given += 1
-    session.add(liker_achievement)
+        session.add(liker_achievement)
         
     # メッセージの投稿者の実績（likes_received）を更新
     # ユーザー名から User を検索
@@ -263,14 +268,16 @@ async def like_message(message_id: int, user_id: int, session: db.SessionDep):
         ).first()
     if receiver_achievement:
         receiver_achievement.likes_received += 1
-    session.add(receiver_achievement)
+        session.add(receiver_achievement)
     
     # DBの更新
     session.commit()
     session.refresh(message)
     session.refresh(new_like)
-    session.refresh(liker_achievement)
-    session.refresh(receiver_achievement)
+    if liker_achievement:
+        session.refresh(liker_achievement)
+    if receiver_achievement:
+        session.refresh(receiver_achievement)
     return {
         "user_id": new_like.user_id,
         "message_id": new_like.message_id
@@ -297,7 +304,7 @@ async def unlike_message(message_id: int, user_id: int, session: db.SessionDep):
     ).first()
     if liker_achievement:
         liker_achievement.likes_given -= 1
-    session.add(liker_achievement)
+        session.add(liker_achievement)
         
     # メッセージの投稿者の実績（likes_received）を更新
     # ユーザー名から User を検索
@@ -310,11 +317,13 @@ async def unlike_message(message_id: int, user_id: int, session: db.SessionDep):
         ).first()
     if receiver_achievement:
         receiver_achievement.likes_received -= 1
-    session.add(receiver_achievement)
+        session.add(receiver_achievement)
     
     # DBの更新
     session.commit()
     session.refresh(message)
-    session.refresh(liker_achievement)
-    session.refresh(receiver_achievement)
+    if liker_achievement:
+        session.refresh(liker_achievement)
+    if receiver_achievement:
+        session.refresh(receiver_achievement)
     return HTTPException(status_code=200, detail="Unliked successfully")
